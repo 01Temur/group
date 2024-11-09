@@ -1,0 +1,8 @@
+streamlit
+yfinance
+pandas
+numpy
+plotly.graph_objs
+wikipediaapi
+train_test_split
+RandomForestClassifier
