@@ -1,6 +1,7 @@
 import streamlit as st
 from yahoo_fin import stock_info as si
 import pandas as pd
+import requests
 
 # Function to fetch stock data for each category
 def fetch_stock_data(category):
