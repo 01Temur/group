@@ -1,32 +1,30 @@
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
+import yfinance as yf
+import pandas as pd
 
-# App title
-st.title("FXPro Shares Trading Information")
+# List of companies (ticker symbols)
+companies = ['AAPL', 'GOOG', 'MSFT', 'AMZN', 'TSLA']
 
-# Function to scrape content from the website
-def scrape_fxpro_shares():
-    url = "https://www.fxpro.com/trading/shares"
-    response = requests.get(url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "html.parser")
-        
-        # Example: Extract specific sections of interest
-        # Modify this section based on the actual structure of the page
-        header = soup.find("h1").text if soup.find("h1") else "No Header Found"
-        paragraphs = soup.find_all("p")
-        content = "\n\n".join([p.text for p in paragraphs])
-        
-        return header, content
-    else:
-        return None, f"Error: Unable to fetch data (Status code: {response.status_code})"
+# Function to fetch stock data
+def get_stock_data(tickers):
+    stock_data = []
+    for ticker in tickers:
+        stock = yf.Ticker(ticker)
+        history = stock.history(period="1d")  # Fetching the latest data
+        price = history['Close'].iloc[-1]
+        change = (history['Close'].pct_change().iloc[-1]) * 100  # Calculate percentage change
+        stock_data.append({'Company': ticker, 'Price': price, 'Change (%)': change})
+    return pd.DataFrame(stock_data)
 
-# Fetch and display content
-header, content = scrape_fxpro_shares()
+# Streamlit App layout
+st.title('Stock Market Dashboard')
+st.write('This app shows the stock price and percentage change for a list of companies.')
 
-if header:
-    st.header(header)
-    st.text_area("Content", content, height=400)
-else:
-    st.error(content)
+# Get stock data
+stock_df = get_stock_data(companies)
+
+# Display data in a table
+st.dataframe(stock_df)
+
+# Optionally, you can also visualize the data in a chart
+st.line_chart(stock_df.set_index('Company')['Price'])
