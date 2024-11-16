@@ -2,7 +2,7 @@ import streamlit as st
 from yahoo_fin import stock_info as si
 import pandas as pd
 
-# Function to fetch data for each category
+# Function to fetch stock data for each category
 def fetch_stock_data(category):
     try:
         if category == "Most Active":
@@ -17,19 +17,20 @@ def fetch_stock_data(category):
         st.error(f"Error fetching data for {category}: {e}")
         return pd.DataFrame()
 
-# Streamlit App
-st.title("Yahoo Finance Stock Data")
+# Streamlit app
+st.title("Yahoo Finance Stock Data Viewer")
 
-st.sidebar.title("Stock Categories")
+# Sidebar for category selection
+st.sidebar.title("Select Stock Category")
 categories = ["Most Active", "Top Gainers", "Top Losers"]
-selected_category = st.sidebar.radio("Select a Category", categories)
+selected_category = st.sidebar.radio("Choose a category:", categories)
 
+# Display the selected category data
 st.header(f"{selected_category} Stocks")
-
-# Fetch and display stock data
 stock_data = fetch_stock_data(selected_category)
 
 if not stock_data.empty:
+    # Display the data in a table
     st.dataframe(stock_data)
 else:
     st.write("No data available for the selected category.")
