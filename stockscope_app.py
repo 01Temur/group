@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import yfinance as yf
 
 # Function to scrape Yahoo Finance
 def get_yahoo_finance_data(category):
