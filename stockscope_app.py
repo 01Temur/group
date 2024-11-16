@@ -1,56 +1,47 @@
 import streamlit as st
-import pandas as pd
 import requests
-from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
+import pandas as pd
 
-# App configuration
-st.set_page_config(page_title="Forex Economic Calendar", layout="wide")
+# Function to scrape Yahoo Finance
+def get_yahoo_finance_data(category):
+    base_url = f"https://finance.yahoo.com/{category}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(base_url, headers=headers)
+    
+    if response.status_code != 200:
+        st.error(f"Failed to fetch data for {category}. Status code: {response.status_code}")
+        return pd.DataFrame()
 
-# Sample static data (replace with API fetching logic for live data)
-def fetch_calendar_data():
-    """Fetch economic calendar data (static or dynamic via API)."""
-    # Example static data
-    data = [
-        {"Date": "2024-11-17", "Time": "12:30", "Country": "US", "Event": "Retail Sales", "Impact": "High", "Previous": "0.6%", "Forecast": "0.7%"},
-        {"Date": "2024-11-18", "Time": "09:00", "Country": "UK", "Event": "Inflation Rate", "Impact": "Medium", "Previous": "3.1%", "Forecast": "3.0%"},
-        {"Date": "2024-11-19", "Time": "14:00", "Country": "US", "Event": "FOMC Minutes", "Impact": "High", "Previous": "-", "Forecast": "-"},
-        {"Date": "2024-11-19", "Time": "11:00", "Country": "EU", "Event": "GDP Growth Rate", "Impact": "Medium", "Previous": "1.2%", "Forecast": "1.1%"},
-    ]
-    return pd.DataFrame(data)
+    soup = BeautifulSoup(response.text, "html.parser")
+    table = soup.find("table", {"class": "W(100%)"})
+    if not table:
+        st.error(f"Could not find data for {category}.")
+        return pd.DataFrame()
 
-# Load calendar data
-calendar_data = fetch_calendar_data()
+    rows = table.find_all("tr")
+    data = []
+    for row in rows[1:]:
+        cols = row.find_all("td")
+        data.append([col.text.strip() for col in cols])
 
-# Sidebar filters
-with st.sidebar:
-    st.header("Filters")
-    countries = st.multiselect("Select Countries", options=calendar_data["Country"].unique(), default=calendar_data["Country"].unique())
-    impacts = st.multiselect("Select Impact Levels", options=["High", "Medium", "Low"], default=["High", "Medium", "Low"])
-    start_date = st.date_input("Start Date", value=datetime.now().date())
-    end_date = st.date_input("End Date", value=(datetime.now() + timedelta(days=7)).date())
+    columns = [header.text.strip() for header in rows[0].find_all("th")]
+    return pd.DataFrame(data, columns=columns)
 
-# Filter data
-filtered_data = calendar_data[
-    (calendar_data["Country"].isin(countries)) &
-    (calendar_data["Impact"].isin(impacts)) &
-    (pd.to_datetime(calendar_data["Date"]) >= pd.Timestamp(start_date)) &
-    (pd.to_datetime(calendar_data["Date"]) <= pd.Timestamp(end_date))
-]
+# Streamlit App
+st.title("Yahoo Finance Stock Data")
 
-# Display calendar data
-st.title("Forex Economic Calendar")
-st.write("View upcoming economic events with their expected and previous impacts on the global markets.")
+st.sidebar.title("Stock Categories")
+categories = {
+    "Most Active": "most-active",
+    "Top Gainers": "gainers",
+    "Top Losers": "losers",
+}
 
-# Calendar table
-if not filtered_data.empty:
-    st.table(filtered_data)
-else:
-    st.warning("No events match the selected filters.")
+selected_category = st.sidebar.radio("Select Category", list(categories.keys()))
 
-# Visualize events by country and impact
-st.subheader("Events Distribution")
-event_counts = filtered_data.groupby(["Country", "Impact"]).size().reset_index(name="Count")
-if not event_counts.empty:
-    st.bar_chart(event_counts.set_index("Country")["Count"])
-else:
-    st.info("No data available for visualization.")
+# Display data
+st.header(f"{selected_category} Stocks")
+data = get_yahoo_finance_data(categories[selected_category])
+if not data.empty:
+    st.dataframe(data)
